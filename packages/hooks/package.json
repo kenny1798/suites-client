@@ -1,0 +1,13 @@
+{
+    "name": "@suite/hooks",
+    "version": "1.0.0",
+    "main": "src/index.js",
+    "private": true,
+    "dependencies": {
+      "@suite/api-clients": "workspace:*",
+      "@suite/auth": "workspace:*"
+    },
+    "peerDependencies": {
+      "react": "^18.0.0"
+    }
+  }

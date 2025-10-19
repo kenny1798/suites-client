@@ -1,0 +1,25 @@
+{
+  "name": "@suite/salestrack",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "dependencies": {
+    "@suite/api-clients": "workspace:*",
+    "@suite/auth": "workspace:*",
+    "@suite/core-context": "workspace:*",
+    "@suite/hooks": "workspace:*",
+    "@suite/ui": "workspace:*",
+    "@suite/utils": "workspace:*",
+    "date-fns": "^4.1.0",
+    "react-datepicker": "^8.7.0",
+    "react-is": "^19.2.0",
+    "react-select": "^5.10.2",
+    "recharts": "^3.2.1"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "react-router-dom": ">=6"
+  }
+}
