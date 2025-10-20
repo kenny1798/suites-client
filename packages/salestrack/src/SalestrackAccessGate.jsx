@@ -24,6 +24,9 @@ export default function SalestrackAccessGate({ children }) {
   useEffect(() => {
     let alive = true;
     async function run() {
+      console.log('sub', sub)
+      console.log('subStatus', subStatus)
+      console.log('subActive', subActive)
       if (!user) { setTeams([]); return; }
       setTeamsLoading(true);
       try {

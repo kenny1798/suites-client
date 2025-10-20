@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '@suite/auth'; // Anggap hang ada hook ni
+import { useAuth } from '@suite/auth';
 import {apiAuth} from '@suite/api-clients';
 
 export default function PaymentSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { refreshEntitlements } = useAuth(); // Kita akan bincang pasal ni di bawah
+  const { refreshEntitlements } = useAuth();
 
   const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error'
   const [error, setError] = useState('');
