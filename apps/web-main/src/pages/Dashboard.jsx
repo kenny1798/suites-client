@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '@suite/auth';
 import { useTools } from '../hooks/useTools';
-import { useMySubs } from '../hooks/useMySubs';
 import ToolDashboardCard from '../components/ToolDashboardCard.jsx';
 import { useMySubs } from '@suite/hooks';
 
