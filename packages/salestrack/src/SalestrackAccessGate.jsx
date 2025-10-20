@@ -78,7 +78,7 @@ export default function SalestrackAccessGate({ children }) {
     if (teamsCount > 0) return { kind: 'ALLOW' };
 
     // ── No team & no active sub → to store
-    return { kind: 'NAVIGATE', to: STORE_PATH };
+    // return { kind: 'NAVIGATE', to: STORE_PATH };
   }, [user, isLoading, subStatus, subActive, teamsCount, isOwnerSomewhere, sub?.portalUrl]);
 
   // ── Render
