@@ -12,13 +12,15 @@ const RENEW_PATH = '/billing/renew/salestrack';
 
 export default function SalestrackAccessGate({ children }) {
   const { user, loading: authLoading } = useAuth();
-  const { loading: subLoading, sub } = useMySubs('salestrack'); // { status, portalUrl? }
+  const { loading: subLoading, map } = useMySubs();
+  const sub = map['salestrack'] || null;
   const [teams, setTeams] = useState(null); // array or null while loading
   const [teamsLoading, setTeamsLoading] = useState(false);
   const location = useLocation();
 
-  const subStatus  = (sub?.status || '').toLowerCase();          // 'active' | 'trialing' | 'past_due' | 'expired' | ...
-  const subActive  = subStatus === 'active' || subStatus === 'trialing';
+  const toCode = (x) => (x ?? '').toString().trim().toLowerCase();
+  const subStatus = toCode(sub?.status);
+  const subActive = ['active','trialing','past_due'].includes(subStatus);
 
   // 🔎 always fetch teams (whether owner or member)
   useEffect(() => {
@@ -78,7 +80,7 @@ export default function SalestrackAccessGate({ children }) {
     if (teamsCount > 0) return { kind: 'ALLOW' };
 
     // ── No team & no active sub → to store
-    // return { kind: 'NAVIGATE', to: STORE_PATH };
+    return { kind: 'NAVIGATE', to: STORE_PATH };
   }, [user, isLoading, subStatus, subActive, teamsCount, isOwnerSomewhere, sub?.portalUrl]);
 
   // ── Render
