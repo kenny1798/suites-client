@@ -4,6 +4,9 @@
   "main": "src/index.js",
   "module": "src/index.js",
   "type": "module",
+  "dependencies": {
+    "@suite/api-clients": "workspace:*"
+  },
   "peerDependencies": {
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
