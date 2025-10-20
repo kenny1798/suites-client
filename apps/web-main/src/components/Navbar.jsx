@@ -52,12 +52,12 @@ export default function Navbar({ user, onLogout, onHamburger, onOpenLauncher }) 
 
         {/* LOGO */}
         <Link to="/" className="font-extrabold tracking-tight text-slate-900 uppercase">
-          Suites
+          Suite
         </Link>
 
         {/* LEFT NAV (desktop) */}
         <nav className="hidden md:flex items-center gap-6 ml-6">
-          <NavLink to="/" className={({ isActive }) => tabCn(isActive)}>Suites Dashboard</NavLink>
+          <NavLink to="/" className={({ isActive }) => tabCn(isActive)}>Suite Dashboard</NavLink>
           <NavLink to="/marketplace" className={({ isActive }) => tabCn(isActive)}>Marketplace</NavLink>
           <button
             onClick={onOpenLauncher}

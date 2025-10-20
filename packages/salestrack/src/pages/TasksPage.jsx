@@ -58,6 +58,21 @@ export default function TasksPage() {
   
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [teamId, mineOnly, status, type]);
 
+    // load opportunities for quick-add select
+    useEffect(() => {
+      if (!teamId) return;
+      (async () => {
+        try {
+          const r = await toolsApi.get('/api/salestrack/opportunities', { params: { teamId }});
+          setOpps(Array.isArray(r.data) ? r.data : []);
+        } catch (e) {
+          console.error('Failed to load opportunities for tasks:', e?.response?.data || e);
+        }
+      })();
+    }, [teamId]);
+  
+  
+
   const filtered = useMemo(() => {
     const now = Date.now();
     const qStr = q.trim().toLowerCase();
@@ -94,7 +109,7 @@ export default function TasksPage() {
           t.type,
           t.status,
           t?.Opportunity?.name,
-          t?.Contact?.name,
+          t?.Opportunity?.Contact?.name,
         ]
           .filter(Boolean)
           .join(' ')
@@ -163,7 +178,10 @@ export default function TasksPage() {
     <div className="p-6 space-y-4">
       {/* header */}
       <div className="flex items-center justify-between">
+        <div>
         <h1 className="text-xl font-semibold">Tasks</h1>
+        <p className="text-sm text-gray-500">Stay on top of your daily to-dos</p>
+        </div>
         <button className="px-3 py-1.5 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white hover:bg-gray-50" onClick={() => setQaOpen(v => !v)}>
           {qaOpen ? 'Close' : 'Quick Add'}
         </button>
@@ -232,10 +250,6 @@ export default function TasksPage() {
           <select value={type} onChange={(e) => setType(e.target.value)} className="border rounded-lg px-3 py-2 text-sm">
             {['ALL','FOLLOWUP','CALL','EMAIL','MEETING','WHATSAPP'].map(x => <option key={x} value={x}>{x}</option>)}
           </select>
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={mineOnly} onChange={(e)=>setMineOnly(e.target.checked)} />
-            Mine only
-          </label>
         </div>
       </div>
 
@@ -265,7 +279,7 @@ export default function TasksPage() {
                     <Td>{fmtDate(t.dueAt)}</Td>
                     <Td>
                       {t.opportunityId ? (
-                        <Link to={`/salestrack/opps/${t.opportunityId}`} className="underline">
+                        <Link to={`/salestrack/opportunities/${t.opportunityId}`} className="underline">
                           {t?.Opportunity?.name || `#${t.opportunityId}`}
                         </Link>
                       ) : '—'}
@@ -290,7 +304,7 @@ export default function TasksPage() {
                 <div className="text-sm">{t.note || '—'}</div>
                 <div className="text-xs">
                   {t.opportunityId ? (
-                    <Link to={`/salestrack/opps/${t.opportunityId}`} className="underline">
+                    <Link to={`/salestrack/opportunities/${t.opportunityId}`} className="underline">
                       {t?.Opportunity?.name || `#${t.opportunityId}`}
                     </Link>
                   ) : 'No opportunity'}

@@ -46,7 +46,7 @@ export default function DesktopSidebar({
 
   const myRole = activeTeam?.TeamMembers[0]?.role;
   const isLoading = loadingTools || loadingSubs;
-  const HeaderTitle = activeTool ? activeTeam?.name || activeTool.name : 'Suites';
+  const HeaderTitle = activeTool ? activeTeam?.name || activeTool.name : 'Suite';
 
   const ownedTools = React.useMemo(() => {
     if (!user?.entitlements?.tools || !allTools) return [];

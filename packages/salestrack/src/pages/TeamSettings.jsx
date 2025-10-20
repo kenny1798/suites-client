@@ -243,7 +243,7 @@ function toArrayPayload(pipeline) {
     return (
       <div className="mx-auto max-w-4xl p-6">
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Team Settings</h1>
+          <h1 className="text-xl font-semibold">Team Settings</h1>
           <div className="text-sm text-slate-500">
             Team ID: <span className="font-mono">{teamId}</span>
           </div>
@@ -289,10 +289,6 @@ function toArrayPayload(pipeline) {
                 </button>
               </div>
             </section>
-
-            <ProductsPanel teamId={teamId} />
-
-            <InviteByLinkPanel />
   
             {error && <p className="mt-4 text-sm text-red-600 text-center">{error}</p>}
           </>

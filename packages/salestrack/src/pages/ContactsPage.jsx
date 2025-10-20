@@ -63,7 +63,10 @@ export default function ContactsPage() {
     <div className="p-6 space-y-5">
       {/* Top header: title + Add button */}
       <header className="flex items-center justify-between">
+        <div>
         <h1 className="text-xl font-semibold">Contacts</h1>
+        <p className="text-sm text-gray-500">Manage and track all your leads in one place</p>
+        </div>
         <button
           onClick={()=>setOpenAdd(true)}
           className="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium bg-white hover:bg-gray-50"

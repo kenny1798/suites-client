@@ -1,49 +1,54 @@
+// pages/AuthSuccess.jsx
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider.jsx';
-import { apiAuth } from '@suite/api-clients'; // 1. Import apiAuth untuk dapatkan profil
+import { apiAuth } from '@suite/api-clients';
+
+function pickRedirect(location) {
+  const qs = new URLSearchParams(location.search);
+  let raw = qs.get('redirect') || localStorage.getItem('postLoginRedirect') || '/';
+  // sanitize – only same-origin paths
+  if (raw.startsWith('http://') || raw.startsWith('https://')) {
+    try { const u = new URL(raw); raw = `${u.pathname}${u.search}${u.hash}`; } catch { raw = '/'; }
+  }
+  return raw.startsWith('/') ? raw : '/';
+}
 
 export function AuthSuccess() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { login, logout } = useAuth(); // 2. Guna 'login', bukan 'loginWithToken'
+  const { login, logout } = useAuth();
   const [message, setMessage] = useState('Authenticating, please wait...');
 
   useEffect(() => {
     const token = new URLSearchParams(location.search).get('token');
+    const redirectTo = pickRedirect(location);
 
-    const authenticate = async () => {
+    (async () => {
       try {
-        if (!token) {
-          throw new Error('No authentication token found in URL.');
-        }
+        if (!token) throw new Error('No authentication token found in URL.');
 
-        // 3. Simpan token dalam localStorage dulu
+        // store token so apiAuth has it
         localStorage.setItem('accessToken', token);
 
-        // 4. Guna token tu untuk dapatkan maklumat profil pengguna dari backend
+        // fetch profile using that token
         const profileResponse = await apiAuth.get('/user/profile');
-        if (!profileResponse.data) {
-          throw new Error('Could not fetch user profile with the provided token.');
-        }
+        if (!profileResponse.data) throw new Error('Could not fetch user profile with the provided token.');
 
-        // 5. Sekarang baru panggil fungsi 'login' dengan format objek yang betul
+        // hydrate app auth
         await login({ token, profile: profileResponse.data });
-        
-        // Redirect ke dashboard selepas semuanya berjaya
-        navigate('/', { replace: true });
 
+        // clean & go
+        localStorage.removeItem('postLoginRedirect');
+        navigate(redirectTo, { replace: true });
       } catch (e) {
         console.error('Auth success failed:', e);
         setMessage(e.message || 'Authentication failed.');
-        logout(); // Logout jika ada sebarang masalah
-        // (Pilihan) Redirect ke login selepas beberapa saat
-        setTimeout(() => navigate('/login', { replace: true }), 3000);
+        logout();
+        setTimeout(() => navigate('/login', { replace: true }), 2500);
       }
-    };
-
-    authenticate();
-  }, []); // useEffect ni hanya perlu jalan sekali sahaja
+    })();
+  }, []); // run once
 
   return <div className="p-4 text-center">{message}</div>;
 }

@@ -29,6 +29,12 @@ export function AuthProvider({ children }) {
     await refreshEntitlements();
   };
 
+  const loginWithEmail = async (email, password) => {
+    const { data } = await apiAuth.post('/auth/login', { email, password });
+    await login({ token: data.token, profile: data.user });
+  };
+
+
   const logout = () => {
     localStorage.removeItem("accessToken");
     setUser(null);
@@ -70,6 +76,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login,
+    loginWithEmail,
     logout,
     refreshEntitlements,
   }), [user, loading]);

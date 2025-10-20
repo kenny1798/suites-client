@@ -10,7 +10,7 @@ import {
   
 
 const money = (cents = 0) =>
-  `RM${(Number(cents || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `RM ${(Number(cents || 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export function todayStr() {
     const d = new Date();                  // local time
@@ -111,8 +111,13 @@ export default function PerformanceMe() {
     }));
   }, [sheet]);
 
+
   return (
     <div className="p-6 space-y-4">
+      <div>
+        <h1 className="text-xl font-semibold">My Performance</h1>
+        <p className="text-sm text-gray-500">View your personal progress and achievements</p>
+      </div>
       {/* range presets */}
       <div className="flex flex-wrap items-center gap-2">
         <button className="px-3 py-1.5 rounded border" onClick={() => { const t=todayStr(); setFrom(t); setTo(t); }}>Today</button>
@@ -128,7 +133,7 @@ export default function PerformanceMe() {
 
       {/* tabs */}
       <div className="flex gap-4 border-b">
-        {['summary','sheet','graph','conversions'].map(k => (
+        {['summary','sheet','trend','conversions'].map(k => (
           <button key={k}
             onClick={()=>setTab(k)}
             className={cls('px-3 py-2 -mb-px', tab===k ? 'border-b-2 border-black font-medium' : 'text-gray-500')}>
@@ -145,8 +150,8 @@ export default function PerformanceMe() {
       ) : tab === 'summary' ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Kpi title="Targeted Sales" value={money(kpis.targetCents)} />
-          <Kpi title="Actual Sales"   value={money(kpis.actualCents)} strong />
-          <Kpi title="Sales Gap"      value={money(salesGap)} valueClass={salesGap > 0 ? 'text-red-600' : 'text-green-600'} />
+          <Kpi title="Actual Sales"   value={money(kpis.actualCents)} />
+          <Kpi title="Sales Gap (Target − Actual)"      value={money(salesGap)} valueClass={salesGap > 0 ? 'text-red-600' : 'text-green-600'} />
           <Kpi title="Won Deals"      value={String(kpis.wonDeals || 0)} />
           <Kpi title="New Contacts Added" value={String(kpis.newContacts || 0)} />
           <Kpi title="Opportunities Created" value={String(kpis.oppCreated || 0)} />
@@ -155,31 +160,41 @@ export default function PerformanceMe() {
         <div className="overflow-x-auto bg-white border rounded-xl">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
-              <tr><Th>Date</Th><Th>Target (RM)</Th><Th>Actual Sales (RM)</Th><Th>New Contacts</Th><Th>Opportunities</Th></tr>
+              <tr><Th>Date</Th><Th>Target (RM)</Th><Th>Actual Sales (RM)</Th><Th>Sales Gap (RM)</Th><Th>New Contacts</Th><Th>Opportunities</Th></tr>
             </thead>
             <tbody>
-              {sheet.map((r, i) => (
+              {sheet.map((r, i) => { 
+
+                const salesGap = Number(r.targetCents || 0) - Number(r.actualCents || 0);
+                const gapCls =
+                      salesGap < 0 ? 'text-emerald-600'
+                    : salesGap > 0 ? 'text-rose-600'
+                    : '';
+                
+                return (
                 <tr key={i} className="border-t">
                   <Td>{r.date}</Td>
                   <Td>{money(r.targetCents)}</Td>
                   <Td>{money(r.actualCents)}</Td>
+                  <Td className={gapCls}>{money(salesGap)}</Td>
                   <Td>{r.newContacts || 0}</Td>
                   <Td>{r.oppCreated || 0}</Td>
                 </tr>
-              ))}
+              )})}
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 font-medium border-t">
                 <Td>Total</Td>
                 <Td>{money(sheet.reduce((s,x)=>s+Number(x.targetCents||0),0))}</Td>
                 <Td>{money(sheet.reduce((s,x)=>s+Number(x.actualCents||0),0))}</Td>
+                <Td>{money(sheet.reduce((s,x)=>s+Number(x.targetCents||0)-Number(x.actualCents||0),0))}</Td>
                 <Td>{sheet.reduce((s,x)=>s+Number(x.newContacts||0),0)}</Td>
                 <Td>{sheet.reduce((s,x)=>s+Number(x.oppCreated||0),0)}</Td>
               </tr>
             </tfoot>
           </table>
         </div>
-      ) : tab === 'graph' ? (
+      ) : tab === 'trend' ? (
         <div className="space-y-6">
     {/* build graph-ready data from sheet */}
     {(() => {
@@ -193,7 +208,7 @@ export default function PerformanceMe() {
       }));
 
       const rm = (v=0) =>
-        `RM${Number(v).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}`;
+        `RM ${Number(v).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2})}`;
       
       const fmtTick = (iso) => {
         // "2025-09-01" -> "01 Sep"
@@ -241,8 +256,8 @@ export default function PerformanceMe() {
                 />
                 <Tooltip formatter={(v, n) => (n.includes('Target')||n.includes('Actual') ? money(v*100) : v)} />
                 <Legend />
-                <Line type="monotone" dataKey="actual" name="Actual Sales" dot={false} stroke="#8884d8" />
-                <Line type="monotone" dataKey="target" name="Daily Target" dot={false} stroke="#82ca9d" />
+                <Line type="monotone" dataKey="actual" name="Actual Sales" dot={false} stroke="#82ca9d" />
+                <Line type="monotone" dataKey="target" name="Daily Target" dot={false} stroke="#242424" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -378,4 +393,4 @@ function Kpi({ title, value, strong, valueClass }) {
   );
 }
 function Th({ children }) { return <th className="text-left p-2 border-b font-medium text-gray-600">{children}</th>; }
-function Td({ children }) { return <td className="p-2">{children}</td>; }
+function Td({ children, className }) { return <td className={cls('p-2', className)}>{children}</td>; }

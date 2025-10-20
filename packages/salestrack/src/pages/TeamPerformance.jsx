@@ -7,7 +7,7 @@ import {
   BarChart, Bar
 } from 'recharts';
 
-const money = (cents=0)=>`RM${(Number(cents||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const money = (cents=0)=>`RM ${(Number(cents||0)/100).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const rm = (v)=>`RM${Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const cls = (...xs)=>xs.filter(Boolean).join(' ');
 function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
@@ -112,11 +112,21 @@ function CardStat({ title, value }) {
   );
 }
 
+const fmtTick = (iso) => {
+  // "2025-09-01" -> "01 Sep"
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short' });
+};
+
 
   const gapCents = (kpis.targetCents || 0) - (kpis.actualCents || 0);
 
   return (
     <div className="p-6 space-y-4">
+      <div>
+        <h1 className="text-xl font-semibold">Team Performance</h1>
+        <p className="text-sm text-gray-500">Analyze your team’s overall results and productivity</p>
+      </div>
       {/* controls */}
       <div className="flex flex-wrap items-center gap-2">
         <select className="border rounded px-3 py-1.5" value={scope}
@@ -142,8 +152,12 @@ function CardStat({ title, value }) {
             {repsForManager.map(r => <option key={r.id} value={String(r.id)}>{r.name}</option>)}
           </select>
         )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
 
         <button className="px-3 py-1.5 rounded border" onClick={()=>{ const t=todayStr(); setFrom(t); setTo(t); }}>Today</button>
+        <button className="px-3 py-1.5 rounded border" onClick={() => { const t=todayStr(); setFrom(addDays(t,-1)); setTo(addDays(t,-1)); }}>Yesterday</button>
         <button className="px-3 py-1.5 rounded border" onClick={()=>{ const t=todayStr(); setFrom(addDays(t,-6)); setTo(t); }}>Last 7 days</button>
         <button className="px-3 py-1.5 rounded border" onClick={()=>{ const t=todayStr(); setFrom(t.slice(0,7)+'-01'); setTo(t); }}>This Month</button>
 
@@ -156,7 +170,7 @@ function CardStat({ title, value }) {
 
       {/* tabs */}
       <div className="flex gap-4 border-b">
-        {['summary','sheet','graph','conversions'].map(k=>(
+        {['summary','sheet','trend','conversions'].map(k=>(
           <button key={k} onClick={()=>setTab(k)}
             className={cls('px-3 py-2 -mb-px', tab===k?'border-b-2 border-black font-medium':'text-gray-500')}>
             {k[0].toUpperCase()+k.slice(1)}
@@ -172,8 +186,8 @@ function CardStat({ title, value }) {
       ) : tab === 'summary' ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Kpi title="Targeted Sales" value={money(kpis.targetCents)} />
-          <Kpi title="Actual Sales"   value={money(kpis.actualCents)} strong />
-          <Kpi title="Sales GAP"      value={money(gapCents)} />
+          <Kpi title="Actual Sales"   value={money(kpis.actualCents)} />
+          <Kpi title="Sales GAP (Target − Actual)"      value={money(gapCents)} valueClass={gapCents>0?'text-red-600':'text-green-600'} />
           <Kpi title="Won Deals"      value={String(kpis.wonDeals || 0)} />
           <Kpi title="New Contacts"   value={String(kpis.newContacts || 0)} />
           <Kpi title="Opportunities"  value={String(kpis.oppCreated || 0)} />
@@ -182,24 +196,34 @@ function CardStat({ title, value }) {
         <div className="overflow-x-auto bg-white border rounded-xl">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
-              <tr><Th>Date</Th><Th>Target (RM)</Th><Th>Actual (RM)</Th><Th>New Contacts</Th><Th>Opportunities</Th></tr>
+              <tr><Th>Date</Th><Th>Target (RM)</Th><Th>Actual (RM)</Th><Th>Sales Gap (RM)</Th><Th>New Contacts</Th><Th>Opportunities</Th></tr>
             </thead>
             <tbody>
-              {sheet.map((r,i)=>(
+              {sheet.map((r,i)=> {
+
+              const salesGap = Number(r.targetCents || 0) - Number(r.actualCents || 0);
+              const gapCls =
+                    salesGap < 0 ? 'text-emerald-600'
+                  : salesGap > 0 ? 'text-rose-600'
+                  : '';
+              
+              return(
                 <tr key={i} className="border-t">
                   <Td>{r.date}</Td>
                   <Td>{money(r.targetCents)}</Td>
                   <Td>{money(r.actualCents)}</Td>
+                  <Td className={gapCls}>{money(salesGap)}</Td>
                   <Td>{r.newContacts || 0}</Td>
                   <Td>{r.oppCreated || 0}</Td>
                 </tr>
-              ))}
+              )})}
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 font-medium border-t">
                 <Td>Total</Td>
                 <Td>{money(sum(sheet,'targetCents'))}</Td>
                 <Td>{money(sum(sheet,'actualCents'))}</Td>
+                <Td>{money(sheet.reduce((s,x)=>s+Number(x.targetCents||0)-Number(x.actualCents||0),0))}</Td>
                 <Td>{sum(sheet,'newContacts')}</Td>
                 <Td>{sum(sheet,'oppCreated')}</Td>
               </tr>
@@ -255,9 +279,14 @@ function CardStat({ title, value }) {
             <ChartWrap>
               <LineChart data={graphData} margin={{ top:10, right:28, bottom:0, left:0 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis tickFormatter={rm} width={92} />
-                <Tooltip formatter={(v,n)=> (n==='Actual' || n==='Target') ? money(v*100) : v} />
+                <XAxis
+                                  dataKey="date"
+                                  tickFormatter={fmtTick}
+                                  interval="preserveStartEnd"
+                                  minTickGap={28}
+                                />
+                <YAxis tickFormatter={(v)=>`RM${Number(v).toLocaleString()}`} width={96} />
+                <Tooltip formatter={(v, n) => (n.includes('Target')||n.includes('Actual') ? money(v*100) : v)} />
                 <Legend />
                 <Line type="monotone" dataKey="Actual" stroke="#10b981" dot={false} name="Actual (RM)" />
                 <Line type="monotone" dataKey="Target" stroke="#9ca3af" dot={false} name="Target (RM)" />
@@ -301,16 +330,16 @@ function CardStat({ title, value }) {
   );
 }
 
-function Kpi({ title, value, strong }) {
+function Kpi({ title, value, strong, valueClass }) {
   return (
     <div className="rounded-xl border bg-white p-4">
       <div className="text-sm text-gray-600">{title}</div>
-      <div className={cls('mt-1 text-2xl tracking-tight', strong ? 'font-bold' : 'font-semibold')}>{value}</div>
+      <div className={cls('mt-1 text-2xl tracking-tight', strong ? 'font-bold' : 'font-semibold', valueClass)}>{value}</div>
     </div>
   );
 }
 function Th({ children }) { return <th className="text-left p-2 border-b font-medium text-gray-600">{children}</th>; }
-function Td({ children }) { return <td className="p-2">{children}</td>; }
+function Td({ children, className }) { return <td className={cls('p-2', className)}>{children}</td>; }
 function ChartWrap({ children }) {
   return (
     <div className="w-full" style={{ height: 320 }}>

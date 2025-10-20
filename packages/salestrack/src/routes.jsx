@@ -75,7 +75,7 @@ export const salestrackRoutes = [
       {
         path: 'performance',
         element: (
-          <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER']}>
+          <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER', 'ADMIN', 'OWNER']}>
             <PerformanceMe />
           </RoleProtectedRoute>
         ),
@@ -107,7 +107,7 @@ export const salestrackRoutes = [
       {
         path: 'team/settings',
         element: (
-          <RoleProtectedRoute allowedRoles={['ADMIN','OWNER']}>
+          <RoleProtectedRoute allowedRoles={['OWNER']}>
             <TeamSettingsPage />
           </RoleProtectedRoute>
         ),

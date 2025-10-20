@@ -31,14 +31,14 @@ export const toolMeta = {
       allowedRoles: ['SALES_REP', 'MANAGER', 'ADMIN', 'OWNER'],
     },
     { 
-      label: 'My Performance', 
-      to: '/salestrack/performance',
-      allowedRoles: ['SALES_REP', 'MANAGER'],
-    },
-    { 
       label: 'Targets', 
       to: '/salestrack/targets',
       allowedRoles: ['SALES_REP', 'MANAGER', 'ADMIN','OWNER'],
+    },
+    { 
+      label: 'My Performance', 
+      to: '/salestrack/performance',
+      allowedRoles: ['SALES_REP', 'MANAGER', 'ADMIN', 'OWNER'],
     },
     { 
       label: 'Team Performance', 
@@ -58,7 +58,7 @@ export const toolMeta = {
     { 
       label: 'Team Settings', 
       to: '/salestrack/team/settings',
-      allowedRoles: ['ADMIN', 'OWNER'],
+      allowedRoles: ['OWNER'],
     },
   ],
 };

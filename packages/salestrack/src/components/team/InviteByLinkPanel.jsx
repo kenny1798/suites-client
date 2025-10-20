@@ -100,7 +100,7 @@ export default function InviteByLinkPanel() {
   };
 
   return (
-    <section className="rounded-md border p-6 bg-white">
+    <section className="rounded-md border p-6 mt-5 bg-white">
       <h3 className="text-lg font-semibold">Invite Members</h3>
       <p className="text-sm text-slate-500 mt-1">
         Generate a one-time link. Recipient registers/logs in, then opens this link to join.

@@ -147,6 +147,10 @@ export default function ManagerPerformance() {
 
   return (
     <div className="p-6 space-y-4">
+      <div>
+        <h1 className="text-xl font-semibold">Team Performance</h1>
+        <p className="text-sm text-gray-500">Analyze your team’s overall results and productivity</p>
+      </div>
       {/* top controls */}
       <div className="flex flex-wrap gap-2 items-center">
         <select
@@ -177,7 +181,7 @@ export default function ManagerPerformance() {
 
       {/* tabs */}
       <div className="flex gap-4 border-b">
-        {['summary','sheet','graph','conversions'].map(k => (
+        {['summary','sheet','trend','conversions'].map(k => (
           <button key={k}
             onClick={()=>setTab(k)}
             className={cls('px-3 py-2 -mb-px', tab===k ? 'border-b-2 border-black font-medium' : 'text-gray-500')}>
@@ -195,7 +199,7 @@ export default function ManagerPerformance() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <Kpi title="Targeted Sales" value={money(kpis.targetCents)} />
           <Kpi title="Actual Sales"   value={money(kpis.actualCents)} />
-          <Kpi title="Sales GAP"      value={money(salesGap)} valueClass={salesGap>0 ? 'text-red-500' : 'text-green-500'} />
+          <Kpi title="Sales GAP (Target − Actual)"      value={money(salesGap)} valueClass={salesGap>0 ? 'text-red-500' : 'text-green-500'} />
           <Kpi title="Won Deals"      value={String(kpis.wonDeals || 0)} />
           <Kpi title="New Contacts"   value={String(kpis.newContacts || 0)} />
           <Kpi title="Opportunities"  value={String(kpis.oppCreated || 0)} />
@@ -204,31 +208,41 @@ export default function ManagerPerformance() {
         <div className="overflow-x-auto bg-white border rounded-xl">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50">
-              <tr><Th>Date</Th><Th>Target (RM)</Th><Th>Actual (RM)</Th><Th>New Contacts</Th><Th>Opportunities</Th></tr>
+              <tr><Th>Date</Th><Th>Target (RM)</Th><Th>Actual (RM)</Th><Th>Sales Gap (RM)</Th><Th>New Contacts</Th><Th>Opportunities</Th></tr>
             </thead>
             <tbody>
-              {sheet.map((r, i)=>(
+              {sheet.map((r, i)=>{
+
+              const salesGap = Number(r.targetCents || 0) - Number(r.actualCents || 0);
+              const gapCls =
+                    salesGap < 0 ? 'text-emerald-600'
+                  : salesGap > 0 ? 'text-rose-600'
+                  : '';
+
+              return (
                 <tr key={i} className="border-t">
                   <Td>{r.date}</Td>
                   <Td>{money(r.targetCents)}</Td>
                   <Td>{money(r.actualCents)}</Td>
+                  <Td className={gapCls}>{money(salesGap)}</Td>
                   <Td>{r.newContacts || 0}</Td>
                   <Td>{r.oppCreated || 0}</Td>
                 </tr>
-              ))}
+              )})}
             </tbody>
             <tfoot>
               <tr className="bg-gray-50 font-medium border-t">
                 <Td>Total</Td>
                 <Td>{money(sum(sheet,'targetCents'))}</Td>
                 <Td>{money(sum(sheet,'actualCents'))}</Td>
+                <Td className={salesGap>0 ? 'text-rose-600' : 'text-emerald-600'}>{money(sheet.reduce((s,x)=>s+Number(x.targetCents||0)-Number(x.actualCents||0),0))}</Td>
                 <Td>{sum(sheet,'newContacts')}</Td>
                 <Td>{sum(sheet,'oppCreated')}</Td>
               </tr>
             </tfoot>
           </table>
         </div>
-      ) : tab === 'graph' ? (
+      ) : tab === 'trend' ? (
         <div className="space-y-6">
           {/* Graph 1: Target & Actual Sales */}
           <div className="rounded-xl border bg-white p-4">
@@ -342,7 +356,7 @@ function Kpi({ title, value, strong, valueClass }) {
   );
 }
 function Th({ children }) { return <th className="text-left p-2 border-b font-medium text-gray-600">{children}</th>; }
-function Td({ children }) { return <td className="p-2">{children}</td>; }
+function Td({ children, className }) { return <td className={cls('p-2', className)}>{children}</td>; }
 function sum(arr, k){ return (arr||[]).reduce((s,x)=> s + Number(x?.[k]||0), 0); }
 function rm(v){ return `RM${Number(v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
 function ChartWrap({ children }) {

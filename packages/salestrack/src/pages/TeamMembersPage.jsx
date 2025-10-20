@@ -100,7 +100,7 @@ export default function TeamMembersPage() {
     <div className="mx-auto max-w-4xl p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Team Members</h1>
+          <h1 className="text-xl font-semibold">Team Members</h1>
           <p className="text-slate-500">
             {activeTeam?.name} • Role: <span className="font-medium">{myRole?.replace('_',' ')}</span>
           </p>

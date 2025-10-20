@@ -4,6 +4,9 @@ import { toolsApi } from '@suite/api-clients';
 import { useTeam } from '@suite/core-context';
 import CreateOpportunitySheet from '../components/opps/CreateOpportunitySheet.jsx';
 import OpportunityCard from '../components/opps/OpportunityCard.jsx';
+import { combinePhone } from '../utils/combinePhone.js';
+import { ConfirmDialog } from '@suite/ui';
+
 
 const money = new Intl.NumberFormat('en-MY', { style: 'currency', currency: 'MYR', maximumFractionDigits: 0 });
 
@@ -11,10 +14,27 @@ export default function OpportunitiesPage() {
   const { activeTeam } = useTeam();
   const teamId = activeTeam?.id;
 
+  const [scope, setScope] = useState('active');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [statuses, setStatuses] = useState([]);
   const [items, setItems] = useState([]);
+  const [deletedItems, setDeletedItems] = useState([]);
+  const [view, setView] = useState('ACTIVE');
+
+  const [confirm, setConfirm] = useState({
+    open: false, title: '', message: '', danger: false, onConfirm: null
+  });
+
+
+  function askConfirm({ title, message, confirmText = 'Confirm', cancelText = 'Cancel' }) {
+    return new Promise((resolve) => {
+      setConfirm({ open: true, title, message, confirmText, cancelText, resolve });
+    });
+  }
+  const handleConfirmOk = () => { confirm.resolve?.(true); setConfirm(c => ({ ...c, open:false })); };
+  const handleConfirmCancel = () => { confirm.resolve?.(false); setConfirm(c => ({ ...c, open:false })); };
+
 
   // UI filters
   const [q, setQ] = useState('');
@@ -27,12 +47,14 @@ export default function OpportunitiesPage() {
     if (!teamId) return;
     setLoading(true);
     try {
-      const [stRes, oppRes] = await Promise.all([
+      const [stRes, oppRes, delRes] = await Promise.all([
         toolsApi.get(`/api/salestrack/teams/${teamId}/statuses`),
-        toolsApi.get(`/api/salestrack/opportunities?teamId=${teamId}`)
+        toolsApi.get(`/api/salestrack/opportunities`, { params: { teamId, scope } }),
+        toolsApi.get(`/api/salestrack/opportunities/deleted`, { params: { teamId } }),
       ]);
       setStatuses(stRes?.data || []);
       setItems(oppRes?.data || []);
+      setDeletedItems(delRes?.data || []);
     } catch (e) {
       console.error('Failed to load opportunities:', e?.response?.data || e);
     } finally {
@@ -40,17 +62,62 @@ export default function OpportunitiesPage() {
     }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [teamId]);
+  async function doDelete(opp) {
+    await toolsApi.delete(`/api/salestrack/opportunities/${opp.id}`, { data: { teamId } });
+    setItems(prev => prev.filter(x => x.id !== opp.id));
+  }
+  function handleDelete(opp) {
+    if (!teamId || !opp?.id) return;
+    setConfirm({
+      open: true,
+      title: 'Delete opportunity?',
+      message: `“${opp.name}” will be moved to Deleted.\nYou can restore it later.`,
+      confirmText: 'Delete',
+      danger: true,
+      onConfirm: async () => {
+        try { await doDelete(opp); } finally { closeConfirm(); }
+      }
+    });
+  }
+
+  async function handleRestore(opp) {
+    if (!teamId || !opp?.id) return;
+    // guna ConfirmDialog kalau kau dah setup, atau window.confirm
+    const ok = await askConfirm?.({
+      title: 'Restore opportunity?',
+      message: `“${opp.name}” will be moved back to Active.`,
+      confirmText: 'Restore',
+    }) ?? window.confirm(`Restore "${opp.name}"?`);
+    if (!ok) return;
+    try {
+      await toolsApi.post(`/api/salestrack/opportunities/${opp.id}/restore`, { teamId });
+      await load(); // refresh senarai Deleted
+    } catch (e) {
+      console.error(e?.response?.data || e);
+      alert('Failed to restore opportunity.');
+    }
+  }
+ 
+
+
+
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [teamId, scope]);
 
   const filtered = useMemo(() => {
     let list = Array.isArray(items) ? [...items] : [];
     // filter by search
     if (q.trim()) {
       const needle = q.trim().toLowerCase();
-      list = list.filter(x =>
+      const needleDigits = q.replace(/\D+/g, '');
+      list = list.filter(x => {
+        const { digits: phoneDigits } = combinePhone(x?.Contact?.phonecc, x?.Contact?.phone);
+        return(
         x.name?.toLowerCase().includes(needle) ||
-        x?.Contact?.name?.toLowerCase().includes(needle)
-      );
+        x?.Contact?.name?.toLowerCase().includes(needle) ||
+        (needleDigits.length >= 1 && phoneDigits.includes(needleDigits))
+      )
+      });
     }
     // filter by category
     if (catFilter !== 'ALL') {
@@ -80,8 +147,8 @@ export default function OpportunitiesPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Opportunities</h1>
-          <p className="text-sm text-gray-500">Lead → Deal → Outcome</p>
+        <h1 className="text-xl font-semibold">Opportunities</h1>
+        <p className="text-sm text-gray-500">Lead → Deal → Outcome → Ongoing</p>
         </div>
         <button
           onClick={() => setCreating(true)}
@@ -92,12 +159,18 @@ export default function OpportunitiesPage() {
       </div>
 
       {/* Filters */}
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div>
+          <select value={scope} onChange={(e)=>setScope(e.target.value)} className="w-full rounded-lg border px-3 py-2 text-sm">
+            <option value="active">Active</option>
+            <option value="deleted">Deleted</option>
+          </select>
+        </div>
         <div className="col-span-2">
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search opportunity or contact…"
+            placeholder="Search opportunity, contact or phone…"
             className="w-full rounded-lg border px-3 py-2 text-sm"
           />
         </div>
@@ -145,8 +218,12 @@ export default function OpportunitiesPage() {
             No opportunities yet. Create your first one!
           </div>
         ) : (
+          <>
+          <div className="rounded-lg my-4 text-sm text-start text-gray-500 italic">
+          {view === 'ACTIVE' ? 'Click card to view details' : 'These are soft-deleted. You can restore them.'}
+          </div>
           <ul className="space-y-3">
-            {filtered.map(o => (
+          {(view === 'ACTIVE' ? filtered : deletedItems).map(o => (
               <li key={o.id}>
                 <OpportunityCard
                   opp={o}
@@ -154,10 +231,18 @@ export default function OpportunitiesPage() {
                   statusName={o?.OpportunityStatus?.name}
                   contactName={o?.Contact?.name}
                   valueFmt={money.format((o.value || 0) / 100)}
+                  mode={scope === 'deleted' ? 'deleted' : 'active'}
+                  {...(scope === 'deleted'
+                       ? { onRestore: handleRestore }
+                       : { onDelete: handleDelete })}
+             
+                  deleted={view === 'DELETED'}
+                  onRestore={handleRestore}
                 />
               </li>
             ))}
           </ul>
+          </>
         )}
       </div>
 
@@ -169,6 +254,18 @@ export default function OpportunitiesPage() {
           onCreated={() => { setCreating(false); load(); }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirm.open}
+        title={confirm.title}
+        message={confirm.message}
+        confirmText={confirm.confirmText}
+        danger={confirm.danger}
+        onConfirm={handleConfirmOk}
+        onCancel={handleConfirmCancel}
+      />
+
+
     </div>
   );
 }

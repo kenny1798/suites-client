@@ -4,14 +4,32 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "pnpm -C apps/web-main dev",
     "build": "pnpm -r --filter ./apps/* run build",
-    "start": "pnpm -C apps/web-main start"
+    "build:web": "pnpm -C apps/web-main build",
+    "preview": "pnpm -C apps/web-main preview",
+    "start": "pnpm -C apps/web-main preview"
+  },
+  "pnpm": {
+    "overrides": {
+      "react-router": "^7.0.0",
+      "react-router-dom": "^7.0.0"
+    }
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.14.0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@babel/runtime": "^7.28.4",
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "cookie": "^1.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router": "^7.9.3",
+    "react-router-dom": "^7.9.3",
+    "set-cookie-parser": "^2.7.1"
+  }
 }
