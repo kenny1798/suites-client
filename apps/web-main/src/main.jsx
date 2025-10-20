@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, ProtectedRoute, AuthSuccess } from '@suite/auth'
 
+
 import AppLayout from './layout/AppLayout.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Login from './pages/Login.jsx'
@@ -16,6 +17,8 @@ import NotFound from './pages/NotFound.jsx'
 import { toolMeta as salestrackTool, salestrackRoutes as salesTrackRoutes } from '@suite/salestrack'
 
 const tools = [salestrackTool]
+
+
 
 function SalestrackRoutes() {
   return (

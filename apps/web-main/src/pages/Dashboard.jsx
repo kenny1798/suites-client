@@ -3,6 +3,8 @@ import { useAuth } from '@suite/auth';
 import { useTools } from '../hooks/useTools';
 import { useMySubs } from '../hooks/useMySubs';
 import ToolDashboardCard from '../components/ToolDashboardCard.jsx';
+import { useMySubs } from '@suite/hooks';
+
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -10,6 +12,8 @@ export default function Dashboard() {
   const { map: subsMap, loading: loadingSubs } = useMySubs();
 
   const isLoading = loadingTools || loadingSubs;
+
+  console.log(useMySubs('salestrack'))
 
   // =================================================================
   // BLOK KRITIKAL: Punca ralat selalunya di sini.
