@@ -17,12 +17,12 @@ export default defineConfig({
     host: true,
     port: 3000,
     strictPort: true,
-    https: {
-      key: fs.readFileSync(path.resolve(__dirname, 'certs/localhost-key.pem')),
-      cert: fs.readFileSync(path.resolve(__dirname, 'certs/localhost.pem')),
-    },
+    // https: {
+    //   key: fs.readFileSync(path.resolve(__dirname, 'certs/localhost-key.pem')),
+    //   cert: fs.readFileSync(path.resolve(__dirname, 'certs/localhost.pem')),
+    // },
     fs: { allow: [path.resolve(__dirname, '../../')] },
-    proxy: { '/api': { target: 'https://localhost:3001', changeOrigin: true, secure: false } },
+    proxy: { '/api': { target: 'https://auth.tflegacy.com', changeOrigin: true, secure: false } },
     watch: {
       ignored: [
         '**/node_modules/**',
