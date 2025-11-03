@@ -1,38 +1,41 @@
 import React, { useMemo } from 'react';
 import { useAuth } from '@suite/auth';
-import { useTools } from '../hooks/useTools';
+import { useTools } from '../hooks/useTools'; // <- Hang kena ada hook ni
 import ToolDashboardCard from '../components/ToolDashboardCard.jsx';
-import { useMySubs } from '@suite/hooks';
+
+// --- 1. IMPORT HOOK YANG BETUL ---
+import { useMySubs } from '@suite/hooks'; // <-- DIUBAH
 
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { data: allTools, loading: loadingTools } = useTools();
-  const { map: subsMap, loading: loadingSubs } = useMySubs();
+
+  // --- 2. GUNA HOOK useMySubs ---
+  const { map: subsMap, loading: loadingSubs } = useMySubs(); // <-- DIUBAH
 
   const isLoading = loadingTools || loadingSubs;
 
-  console.log(useMySubs('salestrack'))
-
-  // =================================================================
-  // BLOK KRITIKAL: Punca ralat selalunya di sini.
-  // Pastikan blok 'useMemo' hang sebijik macam di bawah.
-  // =================================================================
+  // --- 3. LOGIK DI FIX (GUNA subsMap) ---
   const { ownedTools, discoverTools } = useMemo(() => {
-    if (!allTools || !user?.entitlements?.tools) {
-      return { ownedTools: [], discoverTools: allTools || [] };
+    if (!allTools) {
+      return { ownedTools: [], discoverTools: [] };
     }
     
-    const owned = allTools.filter(tool => user.entitlements.tools.includes(tool.slug));
-    const discover = allTools.filter(tool => !user.entitlements.tools.includes(tool.slug));
+    // "Owned" = Ada rekod dalam subsMap (tak kira status)
+    const owned = allTools.filter(tool => subsMap[tool.slug] != null);
+    
+    // "Discover" = TAK ADA rekod dalam subsMap
+    const discover = allTools.filter(tool => subsMap[tool.slug] == null);
     
     return { ownedTools: owned, discoverTools: discover };
 
-  }, [allTools, user]); // <-- Dependency MESTI 'allTools' dan 'user' sahaja.
+  }, [allTools, subsMap]); // <-- Dependency ditukar ke subsMap
 
   return (
     <div className="p-4 sm:p-6">
       <header className="mb-8">
+        {/* ... (kod yang lain semua sama) ... */}
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
           Welcome, {user?.name || 'User'}!
         </h1>
@@ -53,7 +56,7 @@ export default function Dashboard() {
                   <ToolDashboardCard
                     key={tool.slug}
                     tool={tool}
-                    subscription={subsMap[tool.slug] || null}
+                    subscription={subsMap[tool.slug] || null} // <-- Hantar data subscription
                     isOwned={true}
                   />
                 ))}
@@ -89,3 +92,4 @@ export default function Dashboard() {
     </div>
   );
 }
+

@@ -1,77 +1,117 @@
-// Ganti kod penuh dalam pakej @suite/auth, cth: packages/auth/src/AuthProvider.jsx
-
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { apiAuth } from '@suite/api-clients';
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
 
+/**
+ * Shape yang kita simpan dalam state:
+ * user = {
+ *   ...profile,
+ *   suiteEntitlements: {
+ *     tools: string[],
+ *     entitlements: {
+ *       [toolId: string]: {
+ *         status: 'trialing'|'active'|'expired'|'past_due'|'suspended'|'canceled',
+ *         planCode: string,
+ *         planName: string|null,
+ *         trialEnd: string|null,
+ *         features: {
+ *           [featureKey: string]: { enabled: boolean, limit: number|string|null }
+ *         }
+ *       }
+ *     }
+ *   }
+ * }
+ */
 export function AuthProvider({ children }) {
-  // Kita akan simpan 'entitlements' di dalam objek 'user'
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fungsi untuk dapatkan entitlements dan gabungkan dengan data user sedia ada
-  const refreshEntitlements = async () => {
+  /* ===========================
+   * Helpers (pure functions)
+   * =========================== */
+  const getEntitlements = useCallback(() => user?.suiteEntitlements ?? { tools: [], entitlements: {} }, [user]);
+
+  /** Semak kewujudan feature untuk tool tertentu */
+  const has = useCallback((toolId, featureKey) => {
+    const se = getEntitlements();
+    return !!se?.entitlements?.[toolId]?.features?.[featureKey]?.enabled;
+  }, [getEntitlements]);
+
+  /** Ambil limit (int/text) sesuatu feature, atau fallback */
+  const limit = useCallback((toolId, featureKey, fallback = null) => {
+    const se = getEntitlements();
+    const v = se?.entitlements?.[toolId]?.features?.[featureKey];
+    if (!v) return fallback;
+    return v.limit ?? fallback;
+  }, [getEntitlements]);
+
+  /** Dapatkan seluruh blok entitlements untuk tool */
+  const entitlementsFor = useCallback((toolId) => {
+    const se = getEntitlements();
+    return se?.entitlements?.[toolId] ?? null;
+  }, [getEntitlements]);
+
+  /* ===========================
+   * Network calls
+   * =========================== */
+
+  // OS-level entitlements (multi-tool)
+  const fetchSuiteEntitlements = useCallback(async () => {
     try {
-      const { data } = await apiAuth.get("/billing/me/entitlements");
-      setUser(currentUser => ({ ...currentUser, entitlements: data }));
+      const { data } = await apiAuth.get('/billing/tools/entitlements');
+      return data || { tools: [], entitlements: {} };
     } catch (e) {
-      console.error("Failed to refresh entitlements:", e);
-      setUser(currentUser => ({ ...currentUser, entitlements: null }));
+      console.error('Failed to fetch suite entitlements:', e);
+      return { tools: [], entitlements: {} };
     }
-  };
+  }, []);
 
-  // Fungsi login kini hanya perlu uruskan token dan profil awal
-  const login = async ({ token, profile }) => {
-    localStorage.setItem("accessToken", token);
-    setUser(profile); // Terus set profil, entitlements akan direfresh
-    await refreshEntitlements();
-  };
+  /** Public: refresh entitlements */
+  const refreshEntitlements = useCallback(async () => {
+    const ent = await fetchSuiteEntitlements();
+    setUser((prev) => (prev ? { ...prev, suiteEntitlements: ent } : prev));
+  }, [fetchSuiteEntitlements]);
 
-  const loginWithEmail = async (email, password) => {
+  /** Login hydrates token + profile + entitlements */
+  const login = useCallback(async ({ token, profile }) => {
+    localStorage.setItem('accessToken', token);
+    const ent = await fetchSuiteEntitlements();
+    setUser({ ...profile, suiteEntitlements: ent });
+  }, [fetchSuiteEntitlements]);
+
+  const loginWithEmail = useCallback(async (email, password) => {
     const { data } = await apiAuth.post('/auth/login', { email, password });
     await login({ token: data.token, profile: data.user });
-  };
+  }, [login]);
 
-
-  const logout = () => {
-    localStorage.removeItem("accessToken");
+  const logout = useCallback(() => {
+    localStorage.removeItem('accessToken');
     setUser(null);
-  };
-  
-  // useEffect ini akan jalan sekali sahaja bila aplikasi dimuatkan
+  }, []);
+
+  // Rehydrate on app start
   useEffect(() => {
-    const checkLoggedInUser = async () => {
-      const token = localStorage.getItem("accessToken");
+    (async () => {
+      const token = localStorage.getItem('accessToken');
       if (!token) {
         setLoading(false);
         return;
       }
-      
       try {
-        // 1. Dapatkan profil pengguna
         const profileRes = await apiAuth.get('/user/profile');
-        const profileData = profileRes.data;
-
-        // 2. Dapatkan entitlements pengguna
-        const entitlementsRes = await apiAuth.get('/billing/me/entitlements');
-        const entitlementsData = entitlementsRes.data;
-
-        // 3. Gabungkan dan set state user
-        setUser({ ...profileData, entitlements: entitlementsData });
-
-      } catch (error) {
-        console.error("Token validation failed, logging out.", error);
-        logout(); // Jika token tak sah, terus logout
+        const ent = await fetchSuiteEntitlements();
+        setUser({ ...profileRes.data, suiteEntitlements: ent });
+      } catch (err) {
+        console.error('Token validation failed, logging out.', err);
+        logout();
       } finally {
         setLoading(false);
       }
-    };
-    checkLoggedInUser();
-  }, []); // Array dependency kosong untuk jalan sekali sahaja
+    })();
+  }, [fetchSuiteEntitlements, logout]);
 
-  // Guna useMemo untuk elak re-render yang tak perlu
   const value = useMemo(() => ({
     user,
     loading,
@@ -79,11 +119,17 @@ export function AuthProvider({ children }) {
     loginWithEmail,
     logout,
     refreshEntitlements,
-  }), [user, loading]);
+    // helpers
+    has,
+    limit,
+    entitlementsFor,
+    // quick access
+    tools: user?.suiteEntitlements?.tools ?? [],
+    suiteEntitlements: user?.suiteEntitlements ?? { tools: [], entitlements: {} },
+  }), [user, loading, login, loginWithEmail, logout, refreshEntitlements, has, limit, entitlementsFor]);
 
   return (
     <AuthCtx.Provider value={value}>
-      {/* Hanya render aplikasi bila dah selesai loading */}
       {!loading && children}
     </AuthCtx.Provider>
   );

@@ -47,6 +47,43 @@ export function Badge({ children, className = '', ...rest }) {
   return <span className={`${base} ${theme} ${className.replace('variant-amber','')}`} {...rest}>{children}</span>
 }
 
+export function NewBadge({ children, className = '', ...rest }) {
+  const base = 'rounded px-1.5 py-0.5 text-[10px] font-semibold';
+  
+  let theme = 'bg-slate-100 text-slate-700'; // Default (slate)
+
+  // Logic untuk check semua variant
+  if (className.includes('variant-amber')) {
+    theme = 'bg-amber-100 text-amber-700';
+  } else if (className.includes('variant-blue')) {
+    theme = 'bg-blue-100 text-blue-800';
+  } else if (className.includes('variant-green')) {
+    theme = 'bg-green-100 text-green-800';
+  } else if (className.includes('variant-red')) {
+    theme = 'bg-red-100 text-red-800';
+  } else if (className.includes('variant-slate')) {
+    // (Just in case hang nak hantar 'slate' direct)
+    theme = 'bg-slate-100 text-slate-700';
+  }
+
+  // Buang 'variant-*' dari className supaya dia tak kacau styling
+  const cleanedClassName = className
+    .replace('variant-amber', '')
+    .replace('variant-blue', '')
+    .replace('variant-green', '')
+    .replace('variant-red', '')
+    .replace('variant-slate', '');
+
+  return (
+    <span 
+      className={`${base} ${theme} ${cleanedClassName.trim()}`} 
+      {...rest}
+    >
+      {children}
+    </span>
+  );
+}
+
 /* ==== icons ==== */
 export function MenuIcon(){
   return (

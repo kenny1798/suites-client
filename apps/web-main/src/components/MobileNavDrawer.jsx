@@ -44,7 +44,7 @@ export default function MobileNavDrawer({ open, onClose }) {
   return (
     <>
       <div
-        className={`fixed inset-0 z-40 bg-black/30 transition-opacity lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity xl:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
         onClick={onClose}
       />
       <div

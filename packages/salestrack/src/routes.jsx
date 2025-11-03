@@ -1,6 +1,8 @@
 // packages/salestrack/src/routes.jsx
 import React, { lazy } from 'react';
 import SalestrackShell from './SalestrackShell';
+import SalestrackAccessGate from './SalestrackAccessGate';
+import { SalestrackFeatureGate } from './SalestrackFeatureGate';
 import { RoleProtectedRoute } from '@suite/auth';
 
 const SalesTrackInitializer = lazy(() => import('./pages/SalesTrackInitializer.jsx'));
@@ -9,107 +11,114 @@ const OpportunitiesPage     = lazy(() => import('./pages/OpportunitiesPage.jsx')
 const OpportunityDetail     = lazy(() => import('./pages/OpportunityDetail.jsx'));
 const TasksPage             = lazy(() => import('./pages/TasksPage.jsx'));
 const PerformanceMe         = lazy(() => import('./pages/PerformanceMe.jsx'));
-const Targets              = lazy(() => import('./pages/Targets.jsx'));
+const Targets               = lazy(() => import('./pages/Targets.jsx'));
 const TeamPerformance       = lazy(() => import('./pages/TeamPerformance.jsx'));
-const ManagerPerformance   = lazy(() => import('./pages/ManagerPerformance.jsx'));
+const ManagerPerformance    = lazy(() => import('./pages/ManagerPerformance.jsx'));
 const TeamSettingsPage      = lazy(() => import('./pages/TeamSettings.jsx'));
 const TeamMembersPage       = lazy(() => import('./pages/TeamMembersPage.jsx'));
 const AcceptInvite          = lazy(() => import('./pages/AcceptInvite.jsx'));
+const SetupWizard           = lazy(() => import('./pages/SetupWizard.jsx'));
 
-/**
- * Export as array for createBrowserRouter children under path "/salestrack".
- * - Public invite routes LIVE OUTSIDE the shell (no gate/provider).
- * - Everything else sits under <SalestrackShell/>.
- */
 export const salestrackRoutes = [
-  // ---- Public (no shell) ----
+  // Public invite
   { path: 'invite/:teamId/:hash/:inviterId', element: <AcceptInvite /> },
   { path: 'invite/:teamId/:hash/:pos/:inviterId', element: <AcceptInvite /> },
+  { path: 'setup-my-team', element: (<SetupWizard />), },
 
-  // ---- Gated app ----
+  // Gated app
   {
-    element: <SalestrackShell />,
+    element: (
+      <SalestrackAccessGate>
+        <SalestrackShell />
+      </SalestrackAccessGate>
+    ),
     children: [
       { index: true, element: <SalesTrackInitializer /> },
 
-      {
-        path: 'contacts',
+      { path: 'contacts',
         element: (
           <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER','ADMIN','OWNER']}>
             <ContactsPage />
           </RoleProtectedRoute>
         ),
       },
-      {
-        path: 'opportunities',
+      { path: 'opportunities',
         element: (
           <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER','ADMIN','OWNER']}>
             <OpportunitiesPage />
           </RoleProtectedRoute>
         ),
       },
-      {
-        path: 'opportunities/:oppId',
+      { path: 'opportunities/:oppId',
         element: (
           <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER','ADMIN','OWNER']}>
             <OpportunityDetail />
           </RoleProtectedRoute>
         ),
       },
-      {
-        path: 'tasks',
+      { path: 'tasks',
         element: (
           <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER','ADMIN','OWNER']}>
             <TasksPage />
           </RoleProtectedRoute>
         ),
       },
-      {
-        path: 'targets',
+      { path: 'targets',
         element: (
           <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER','ADMIN','OWNER']}>
             <Targets />
           </RoleProtectedRoute>
         ),
       },
-      {
-        path: 'performance',
+
+      // Performance (personal: bebas)
+      { path: 'performance',
         element: (
-          <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER', 'ADMIN', 'OWNER']}>
+          <RoleProtectedRoute allowedRoles={['SALES_REP','MANAGER','ADMIN','OWNER']}>
             <PerformanceMe />
           </RoleProtectedRoute>
         ),
       },
-      {
-        path: 'manager/performance',
+
+      // Manager dashboards (perlu Monitoring ≥ 2)
+      { path: 'manager/performance',
         element: (
-          <RoleProtectedRoute allowedRoles={['MANAGER']}>
-            <ManagerPerformance />
-          </RoleProtectedRoute>
+          <SalestrackFeatureGate featureKey="ST_MONITORING_LEVEL" min={2}>
+            <RoleProtectedRoute allowedRoles={['MANAGER']}>
+              <ManagerPerformance />
+            </RoleProtectedRoute>
+          </SalestrackFeatureGate>
         ),
       },
-      {
-        path: 'team/performance',
+      { path: 'team/performance',
         element: (
-          <RoleProtectedRoute allowedRoles={['ADMIN','OWNER']}>
-            <TeamPerformance />
-          </RoleProtectedRoute>
+          <SalestrackFeatureGate featureKey="ST_MONITORING_LEVEL" min={2}>
+            <RoleProtectedRoute allowedRoles={['ADMIN','OWNER']}>
+              <TeamPerformance />
+            </RoleProtectedRoute>
+          </SalestrackFeatureGate>
         ),
       },
-      {
-        path: 'team/members',
+
+      // Team members (perlukan Team Level ≥ 2 & MemberLimit > 1)
+      { path: 'team/members',
         element: (
-          <RoleProtectedRoute allowedRoles={['MANAGER','ADMIN','OWNER']}>
-            <TeamMembersPage />
-          </RoleProtectedRoute>
+          <SalestrackFeatureGate featureKey="ST_TEAM_LEVEL" min={2}>
+            <RoleProtectedRoute allowedRoles={['MANAGER','ADMIN','OWNER']}>
+              <TeamMembersPage />
+            </RoleProtectedRoute>
+          </SalestrackFeatureGate>
         ),
       },
-      {
-        path: 'team/settings',
+
+      // Team settings (OWNER only; Level ≥ 1 ok — Individual boleh ubah setting team solo)
+      { path: 'team/settings',
         element: (
-          <RoleProtectedRoute allowedRoles={['OWNER']}>
-            <TeamSettingsPage />
-          </RoleProtectedRoute>
+          <SalestrackFeatureGate featureKey="ST_TEAM_LEVEL" min={1}>
+            <RoleProtectedRoute allowedRoles={['OWNER']}>
+              <TeamSettingsPage />
+            </RoleProtectedRoute>
+          </SalestrackFeatureGate>
         ),
       },
     ],

@@ -1,0 +1,51 @@
+{
+    "ST_PRO_INDIVIDUAL_MONTHLY": {
+      "title": "SalesTrack Pro (Individual)",
+      "price": 29,
+      "interval": "month",
+      "tagline": "Built for solo professionals and independent sales agents who want a fast and reliable CRM to track clients and close deals efficiently.",
+      "highlight": "Essential tools for individual sellers and freelancers.",
+      "badge": null,
+      "features": [
+        "Contacts Module",
+        "Opportunities Module",
+        "Performance Module (Basic)",
+        "Tasks Module",
+        "1 Team Limit",
+        "1 Member Only"
+      ]
+    },
+    "ST_PRO_TEAM_MONTHLY": {
+      "title": "SalesTrack Pro (Team)",
+      "price": 129,
+      "interval": "month",
+      "tagline": "Designed for growing sales teams — manage members, monitor performance, and coordinate follow-ups in one connected workspace.",
+      "highlight": "Our most popular plan for active sales teams.",
+      "badge": "Most Popular",
+      "features": [
+        "Everything in Individual, plus:",
+        "Advanced Performance Analytics",
+        "Team Monitoring Dashboard",
+        "5 Member Limit",
+        "Role Tiers (Owner, Manager, Sales Rep)",
+        "Push Notification Level 2"
+      ]
+    },
+    "ST_ENTERPRISE_MONTHLY": {
+      "title": "SalesTrack Enterprise",
+      "price": 199,
+      "interval": "month",
+      "tagline": "Enterprise-grade scalability and control with unlimited teams, advanced reporting, and full visibility across the organization.",
+      "highlight": "For organizations that demand total control and flexibility.",
+      "badge": "Enterprise Grade",
+      "features": [
+        "Everything in Team, plus:",
+        "Unlimited Members",
+        "Multi-Team Management",
+        "Full Access to All Modules",
+        "Advanced Insights Dashboard",
+        "Priority Support"
+      ]
+    }
+  }
+  

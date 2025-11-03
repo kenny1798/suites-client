@@ -7,7 +7,7 @@ import DesktopSidebar from '../components/DesktopSidebar.jsx'
 import MobileNavDrawer from '../components/MobileNavDrawer.jsx'
 import MobileToolsDrawer from '../components/MobileToolsDrawer.jsx'
 import MobileToolsFAB from '../components/MobileToolsFAB.jsx'
-import { TeamProvider } from '../../../../packages/core-context/src/TeamProvider.jsx'
+import { TeamProvider } from '@suite/core-context'
 
 export default function AppLayout({ tools = [] }) {
   const { user, logout } = useAuth()

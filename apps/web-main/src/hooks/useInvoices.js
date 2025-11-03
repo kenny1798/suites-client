@@ -1,32 +1,29 @@
-// Cipta fail baru: src/hooks/useInvoices.js
+import React from 'react';
+import { apiAuth } from '@suite/api-clients';
 
-import { useState, useEffect } from 'react';
-import {apiAuth} from '@suite/api-clients';
+export function useInvoices({ status = 'all', limit = 100, offset = 0 } = {}) {
+  const [loading, setLoading] = React.useState(true);
+  const [data, setData] = React.useState([]);
+  const [error, setError] = React.useState(null);
 
-export function useInvoices() {
-  const [state, setState] = useState({
-    loading: true,
-    data: [],
-    error: null,
-  });
+  const fetcher = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams();
+      if (status && status !== 'all') qs.set('status', status);
+      qs.set('limit', String(limit));
+      qs.set('offset', String(offset));
+      const { data } = await apiAuth.get(`/billing/invoices?${qs.toString()}`);
+      setData(data?.items || []);
+      setError(null);
+    } catch (e) {
+      setError(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [status, limit, offset]);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchInvoices = async () => {
-      try {
-        const response = await apiAuth.get('/billing/invoices');
-        if (isMounted) {
-          setState({ loading: false, data: response.data || [], error: null });
-        }
-      } catch (err) {
-        if (isMounted) {
-          setState({ loading: false, data: [], error: err.message });
-        }
-      }
-    };
-    fetchInvoices();
-    return () => { isMounted = false; };
-  }, []);
+  React.useEffect(() => { fetcher(); }, [fetcher]);
 
-  return state;
+  return { loading, data, error, refetch: fetcher };
 }

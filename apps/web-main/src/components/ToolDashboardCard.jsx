@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Badge } from './ui.jsx';
+// Import 'Badge' dari 'ui.jsx' (yang ada dalam Canvas hang)
+import { NewBadge } from './ui.jsx';
 
-// Helper function untuk badge (boleh pindah ke fail lain nanti)
+// Helper function untuk badge
 const daysLeft = (iso) => {
   if (!iso) return null;
   const d = Math.ceil((new Date(iso) - new Date()) / 86400000);
@@ -14,24 +15,34 @@ const getBadgeForSub = (sub, isOwned) => {
   if (!sub) return { text: 'Team Access', variant: 'variant-blue' }; // Akses warisan
   
   const status = (sub.status || '').toLowerCase();
+
+  // --- PERUBAHAN DI SINI (Ikut logic ui.jsx hang) ---
   if (status === 'trialing') {
     const left = daysLeft(sub.trialEnd);
-    return { text: left != null ? `Trial • ${left}d` : 'Trial', variant: 'variant-emerald' };
+    // Tukar 'emerald' ke 'blue'
+    return { text: left != null ? `Trial • ${left}d` : 'Trial', variant: 'variant-blue' }; 
   }
-  if (status === 'active') return { text: 'Pro', variant: 'variant-green' };
-  if (status === 'past_due') return { text: 'Past Due', variant: 'variant-amber' };
+  if (status === 'active') {
+    // 'green' dah ada dalam ui.jsx
+    return { text: 'Pro', variant: 'variant-green' }; 
+  }
+  if (status === 'past_due') {
+    // 'amber' dah ada dalam ui.jsx
+    return { text: 'Past Due', variant: 'variant-amber' }; 
+  }
   
-  return { text: 'Expired', variant: 'variant-slate' };
+  // Tukar 'slate' ke 'red'
+  return { text: 'Expired', variant: 'variant-red' }; 
+  // --- TAMAT PERUBAHAN ---
 };
 
 // Terima 'isOwned' sebagai prop baru
 export default function ToolDashboardCard({ tool, subscription, isOwned }) {
   const badge = getBadgeForSub(subscription, isOwned);
 
-  // === LOGIK BARU UNTUK BUTANG ===
+  // (Logik butang kekal sama macam kod asal hang)
   const buttonText = isOwned ? 'Open Tool' : 'Learn More';
   const buttonLink = isOwned ? tool.basePath : `/marketplace/tool/${tool.slug}`;
-  // ==============================
 
   return (
     <div className="bg-white rounded-lg border flex flex-col">
@@ -44,7 +55,10 @@ export default function ToolDashboardCard({ tool, subscription, isOwned }) {
               <p className="text-sm text-slate-500 mt-0.5">{tool.description}</p>
             </div>
           </div>
-          {badge && <Badge className={badge.variant}>{badge.text}</Badge>}
+          {/* Ini akan hantar 'variant-red', 'variant-blue' etc. 
+            ke Badge component (dalam Canvas)
+          */}
+          {badge && <NewBadge className={badge.variant}>{badge.text}</NewBadge>}
         </div>
       </div>
       <div className="border-t p-3 bg-slate-50 rounded-b-lg">
@@ -58,3 +72,4 @@ export default function ToolDashboardCard({ tool, subscription, isOwned }) {
     </div>
   );
 }
+

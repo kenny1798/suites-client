@@ -7,6 +7,7 @@ import { AuthProvider, ProtectedRoute, AuthSuccess } from '@suite/auth'
 
 import AppLayout from './layout/AppLayout.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import ProfilePage from './pages/ProfilePage.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Billing from './pages/Billing.jsx'
@@ -62,6 +63,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             >
               <Route index element={<Dashboard/>} />
               <Route path="billing" element={<Billing/>} />
+              <Route path="profile" element={<ProfilePage/>} />
               <Route path="marketplace" element={<Marketplace/>} />
               <Route path="store" element={<Store/>} />
               <Route path="payment-success" element={<PaymentSuccess/>} />

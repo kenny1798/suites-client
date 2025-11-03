@@ -94,14 +94,14 @@ export default function Navbar({ user, onLogout, onHamburger, onOpenLauncher }) 
                   ${open ? 'opacity-100 scale-100' : 'pointer-events-none opacity-0 scale-95'}`}
               >
                 <div className="p-1">
-                  <DropdownItem to="/account/profile" onClick={() => setOpen(false)}>
+                  <DropdownItem to="/profile" onClick={() => setOpen(false)}>
                     <UserIcon /><span>Edit Profile</span>
                   </DropdownItem>
-                  <DropdownItem to="/account/security" onClick={() => setOpen(false)}>
+                  <DropdownItem to="/changepass" onClick={() => setOpen(false)}>
                     <KeyIcon /><span>Change Password</span>
                   </DropdownItem>
-                  <DropdownItem to="/account/subscriptions" onClick={() => setOpen(false)}>
-                    <CrownIcon /><span>Subscriptions</span>
+                  <DropdownItem to="/billing" onClick={() => setOpen(false)}>
+                    <CrownIcon /><span>Billing & Subscriptions</span>
                   </DropdownItem>
                   <hr className="my-1" />
                   <button

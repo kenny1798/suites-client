@@ -1,89 +1,124 @@
-// Simpan sebagai: src/pages/Store.jsx
-
 import React, { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import {apiAuth} from '@suite/api-clients';
+import { apiAuth } from '@suite/api-clients';
 import PricingCard from '../components/PricingCard.jsx';
-
-// Import semua custom hooks yang diperlukan
 import { useToolDetails } from '../hooks/useToolDetails';
-import { useMySubs } from '../hooks/useMySubs';
+import { useMySubs } from '@suite/hooks';
+import NotificationModal from '../components/NotificationModal.jsx';
 
 export default function Store() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const toolSlug = searchParams.get('tool');
+  const [isSubmitting, setIsSubmitting] = useState(null);
 
-  // State untuk UI
-  const [billingInterval, setBillingInterval] = useState('month'); // 'month' atau 'year'
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [modalState, setModalState] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+    onConfirm: null,
+  });
 
-  // Panggil hooks untuk dapatkan data
   const { loading: loadingTool, data: tool, error: errorTool } = useToolDetails(toolSlug);
-  const { loading: loadingSubs, map: subsMap, error: errorSubs } = useMySubs();
+  const { loading: loadingSubs, map: subsMap } = useMySubs();
 
-  // Gabungkan state loading dan error dari kedua-dua hooks
   const isLoading = loadingTool || loadingSubs;
-  const error = errorTool || errorSubs;
+  const currentSub = subsMap[toolSlug];
+  const subStatus = String(currentSub?.status || '').toLowerCase();
+  const isExpired = subStatus === 'expired';
 
-  // Fungsi untuk handle klik butang subscribe
-  const handleSubscribe = async (priceId) => {
-    setIsSubmitting(true);
+  const handlePlanAction = async (plan) => {
+    setIsSubmitting(plan.code);
     try {
-      const response = await apiAuth.post('/billing/create-checkout-session', {
-        priceId: priceId,
-      });
-      
-      const { url } = response.data;
-      if (url) {
-        window.location.href = url; // Redirect ke Stripe Checkout
+      if (!currentSub) {
+        if (plan.trialDays > 0) {
+          await apiAuth.post('/billing/start-trial', { toolId: tool.slug, planCode: plan.code });
+        } else {
+          await apiAuth.post('/billing/resubscribe/from-canceled', { toolId: tool.slug, planCode: plan.code });
+        }
+        setModalState({
+          isOpen: true,
+          type: 'success',
+          title: 'Plan Activated',
+          message: 'Your plan is now active. Redirecting...',
+          onConfirm: () => (window.location.href = tool.basePath),
+        });
+      } else if (subStatus === 'canceled') {
+        await apiAuth.post('/billing/resubscribe/from-canceled', { toolId: tool.slug, planCode: plan.code });
+        setModalState({
+          isOpen: true,
+          type: 'success',
+          title: 'Welcome Back!',
+          message: 'Your subscription has been reactivated.',
+          onConfirm: () => (window.location.href = tool.basePath),
+        });
       } else {
-        throw new Error('Could not retrieve checkout URL.');
+        navigate('/billing');
       }
     } catch (err) {
-      alert(`Error: ${err.message}`);
-      setIsSubmitting(false);
+      const msg = err.response?.data?.error || err.message;
+      setModalState({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: msg,
+      });
+    } finally {
+      setIsSubmitting(null);
     }
   };
 
-  // Paparkan mesej loading, error, atau jika tool tak dijumpai
   if (isLoading) return <div className="p-6 text-center">Loading plans...</div>;
-  if (error) return <div className="p-6 text-center text-red-600">Error: {error}</div>;
-  if (!tool) return <div className="p-6 text-center">Tool not found. <button onClick={() => navigate('/marketplace')} className="text-blue-600 hover:underline">Go to Marketplace</button></div>;
+  if (!tool) return <div className="p-6 text-center">Tool not found.</div>;
 
-  // Dapatkan langganan spesifik untuk tool ini dari subsMap
-  const currentSub = subsMap[toolSlug];
-
-  // Tapis pelan berdasarkan pilihan bulanan/tahunan
-  const plans = tool.plans.filter(p => p.interval === billingInterval);
+  const plans = (tool.plans || [])
+    .filter((p) => p.interval === 'month')
+    .sort((a, b) => a.priceCents - b.priceCents);
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto">
-      <header className="text-center mb-10">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900">{tool.name} Pricing</h1>
-        <p className="mt-2 text-lg text-slate-600">{tool.description}</p>
+    <div className="relative p-4 sm:p-6 max-w-6xl mx-auto">
+      <header className="text-center mb-6">
+        <h1 className="text-4xl font-bold tracking-tight text-slate-900">
+          {tool.name} Pricing
+        </h1>
+        <p className="mt-2 text-lg text-slate-600">
+          Choose the plan that scales with your business — from solo agents to enterprise sales organizations.
+        </p>
       </header>
-      
-      {/* Toggle Bulanan/Tahunan */}
-      <div className="flex justify-center mb-8">
-        <div className="inline-flex items-center rounded-full border p-1 bg-slate-100">
-          <button onClick={() => setBillingInterval('month')} className={`px-4 py-1 rounded-full text-sm font-semibold ${billingInterval === 'month' ? 'bg-white shadow' : ''}`}>Monthly</button>
-          <button onClick={() => setBillingInterval('year')} className={`px-4 py-1 rounded-full text-sm font-semibold ${billingInterval === 'year' ? 'bg-white shadow' : ''}`}>Yearly</button>
-        </div>
-      </div>
 
-      {/* Grid untuk kad harga */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {plans.map(plan => (
+      {isExpired && (
+        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-800">
+          <b>Subscription Expired:</b> Please clear outstanding invoices in{' '}
+          <button
+            className="text-amber-900 underline"
+            onClick={() => navigate('/billing')}
+          >
+            Billing
+          </button>{' '}
+          before reactivation.
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-6">
+        {plans.map((plan) => (
           <PricingCard
             key={plan.code}
             plan={plan}
             currentSub={currentSub}
-            onSubscribe={handleSubscribe}
-            isSubmitting={isSubmitting}
+            onSelectPlan={handlePlanAction}
+            isSubmitting={isSubmitting === plan.code}
           />
         ))}
       </div>
+
+      <NotificationModal
+        isOpen={modalState.isOpen}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        onClose={() => setModalState({ ...modalState, isOpen: false })}
+      />
     </div>
   );
 }
