@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useTeam } from '@suite/core-context'; // Kita perlukan 'role' dari sini
+import { useTeam } from './TeamProvider'; // Kita perlukan 'role' dari sini
 
 // Komponen ni akan lindungi satu route dan hanya benarkan role tertentu
 export function RoleProtectedRoute({ allowedRoles, children }) {

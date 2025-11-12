@@ -111,6 +111,22 @@ export default function PerformanceMe() {
     }));
   }, [sheet]);
 
+  // ===== Export Sheet to Excel (CSV) =====
+  const handleExportSheet = () => {
+    if (!sheet || sheet.length === 0) {
+      window.alert('No data to export for this range.');
+      return;
+    }
+
+    const scopeLabel =
+      user?.name
+        ? `me-${user.name}`
+        : userId
+        ? `user-${userId}`
+        : 'me';
+
+    exportSheetToCsv({ sheet, from, to, scopeLabel });
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -157,42 +173,98 @@ export default function PerformanceMe() {
           <Kpi title="Opportunities Created" value={String(kpis.oppCreated || 0)} />
         </div>
       ) : tab === 'sheet' ? (
-        <div className="overflow-x-auto bg-white border rounded-xl">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr><Th>Date</Th><Th>Target (RM)</Th><Th>Actual Sales (RM)</Th><Th>Sales Gap (RM)</Th><Th>New Contacts</Th><Th>Opportunities</Th></tr>
-            </thead>
-            <tbody>
-              {sheet.map((r, i) => { 
+        <div className="space-y-2">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleExportSheet}
+              className="inline-flex items-center px-3 py-1.5 text-sm border rounded-md bg-white hover:bg-gray-50"
+            >
+              Export to Excel
+            </button>
+          </div>
 
-                const salesGap = Number(r.targetCents || 0) - Number(r.actualCents || 0);
-                const gapCls =
-                      salesGap < 0 ? 'text-emerald-600'
-                    : salesGap > 0 ? 'text-rose-600'
-                    : '';
-                
-                return (
-                <tr key={i} className="border-t">
-                  <Td>{r.date}</Td>
-                  <Td>{money(r.targetCents)}</Td>
-                  <Td>{money(r.actualCents)}</Td>
-                  <Td className={gapCls}>{money(salesGap)}</Td>
-                  <Td>{r.newContacts || 0}</Td>
-                  <Td>{r.oppCreated || 0}</Td>
+          <div className="overflow-x-auto bg-white border rounded-xl">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <Th>Date</Th>
+                  <Th>Target (RM)</Th>
+                  <Th>Actual Sales (RM)</Th>
+                  <Th>Sales Gap (RM)</Th>
+                  <Th>New Contacts</Th>
+                  <Th>Opportunities</Th>
                 </tr>
-              )})}
-            </tbody>
-            <tfoot>
-              <tr className="bg-gray-50 font-medium border-t">
-                <Td>Total</Td>
-                <Td>{money(sheet.reduce((s,x)=>s+Number(x.targetCents||0),0))}</Td>
-                <Td>{money(sheet.reduce((s,x)=>s+Number(x.actualCents||0),0))}</Td>
-                <Td>{money(sheet.reduce((s,x)=>s+Number(x.targetCents||0)-Number(x.actualCents||0),0))}</Td>
-                <Td>{sheet.reduce((s,x)=>s+Number(x.newContacts||0),0)}</Td>
-                <Td>{sheet.reduce((s,x)=>s+Number(x.oppCreated||0),0)}</Td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {sheet.map((r, i) => {
+                  const salesGap =
+                    Number(r.targetCents || 0) - Number(r.actualCents || 0);
+                  const gapCls =
+                    salesGap < 0
+                      ? 'text-emerald-600'
+                      : salesGap > 0
+                      ? 'text-rose-600'
+                      : '';
+
+                  return (
+                    <tr key={i} className="border-t">
+                      <Td>{r.date}</Td>
+                      <Td>{money(r.targetCents)}</Td>
+                      <Td>{money(r.actualCents)}</Td>
+                      <Td className={gapCls}>{money(salesGap)}</Td>
+                      <Td>{r.newContacts || 0}</Td>
+                      <Td>{r.oppCreated || 0}</Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50 font-medium border-t">
+                  <Td>Total</Td>
+                  <Td>
+                    {money(
+                      sheet.reduce(
+                        (s, x) => s + Number(x.targetCents || 0),
+                        0
+                      )
+                    )}
+                  </Td>
+                  <Td>
+                    {money(
+                      sheet.reduce(
+                        (s, x) => s + Number(x.actualCents || 0),
+                        0
+                      )
+                    )}
+                  </Td>
+                  <Td>
+                    {money(
+                      sheet.reduce(
+                        (s, x) =>
+                          s +
+                          Number(x.targetCents || 0) -
+                          Number(x.actualCents || 0),
+                        0
+                      )
+                    )}
+                  </Td>
+                  <Td>
+                    {sheet.reduce(
+                      (s, x) => s + Number(x.newContacts || 0),
+                      0
+                    )}
+                  </Td>
+                  <Td>
+                    {sheet.reduce(
+                      (s, x) => s + Number(x.oppCreated || 0),
+                      0
+                    )}
+                  </Td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       ) : tab === 'trend' ? (
         <div className="space-y-6">
@@ -394,3 +466,66 @@ function Kpi({ title, value, strong, valueClass }) {
 }
 function Th({ children }) { return <th className="text-left p-2 border-b font-medium text-gray-600">{children}</th>; }
 function Td({ children, className }) { return <td className={cls('p-2', className)}>{children}</td>; }
+
+// ===== CSV export helper (Excel-compatible) =====
+function exportSheetToCsv({ sheet, from, to, scopeLabel }) {
+  const header = [
+    'Date',
+    'Target (RM)',
+    'Actual (RM)',
+    'Sales Gap (RM)',
+    'New Contacts',
+    'Opportunities',
+  ];
+
+  const rows = (sheet || []).map((r) => {
+    const target = (Number(r.targetCents || 0) / 100).toFixed(2);
+    const actual = (Number(r.actualCents || 0) / 100).toFixed(2);
+    const gap =
+      (Number(r.targetCents || 0) - Number(r.actualCents || 0)) / 100;
+
+    return [
+      r.date,
+      target,
+      actual,
+      gap.toFixed(2),
+      Number(r.newContacts || 0),
+      Number(r.oppCreated || 0),
+    ];
+  });
+
+  const lines = [header, ...rows].map((cols) =>
+    cols.map(csvEscape).join(',')
+  );
+
+  const csvContent = lines.join('\r\n');
+  const blob = new Blob([csvContent], {
+    type: 'text/csv;charset=utf-8;',
+  });
+
+  const safeScope = String(scopeLabel || 'me')
+    .toLowerCase()
+    .replace(/\s+/g, '-');
+  const fileName = `my-performance-${safeScope}-${from || 'from'}_to_${
+    to || 'to'
+  }.csv`;
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', fileName);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(value) {
+  if (value == null) return '';
+  const str = String(value);
+  if (/[",\r\n]/.test(str)) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+

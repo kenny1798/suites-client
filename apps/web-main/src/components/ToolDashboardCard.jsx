@@ -42,7 +42,7 @@ export default function ToolDashboardCard({ tool, subscription, isOwned }) {
 
   // (Logik butang kekal sama macam kod asal hang)
   const buttonText = isOwned ? 'Open Tool' : 'Learn More';
-  const buttonLink = isOwned ? tool.basePath : `/marketplace/tool/${tool.slug}`;
+  const buttonLink = isOwned ? tool.basePath : `/store?tool=${tool.slug}`;
 
   return (
     <div className="bg-white rounded-lg border flex flex-col">

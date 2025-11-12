@@ -48,6 +48,10 @@ export default function SalesTrackInitializer() {
     };
   }, [teams, activeTeam]);
 
+  // ==== ROLE aku dalam active team ====
+  const myRole = metrics.myRole;
+  const isOwnerHere = myRole === 'OWNER';
+
   // ==== CTA decisions (pakai OWNED + direct sub) ====
   const canCreateAnotherTeam =
     teamLevel === 3 && isDirectActive && metrics.ownedTeamCount < teamCap;
@@ -78,24 +82,26 @@ export default function SalesTrackInitializer() {
         <PlanBadge status={st?.status} planCode={st?.planCode} />
       </div>
 
-      {/* Usage panel (use OWNED counts) */}
-      <UsagePanel
-        teamLevel={teamLevel}
-        teamCap={teamCap}
-        memberCap={memberCap}
-        teamCount={metrics.ownedTeamCount}    // ⬅️ OWNED
-        memberCount={metrics.memberCount}
-        overMemberLimit={overMemberLimit}
-        atMemberLimit={atMemberLimit}
-        atTeamLimit={atTeamLimit}
-        canInviteMembers={canInviteMembers}
-        canCreateAnotherTeam={canCreateAnotherTeam}
-        onInvite={goInvite}
-        onCreateTeam={goCreateTeam}
-        onUpgrade={goUpgrade}
-      />
+      {/* OWNER sahaja nampak UsagePanel (Team Access + Tips) */}
+      {isOwnerHere && (
+        <UsagePanel
+          teamLevel={teamLevel}
+          teamCap={teamCap}
+          memberCap={memberCap}
+          teamCount={metrics.ownedTeamCount}    // ⬅️ OWNED
+          memberCount={metrics.memberCount}
+          overMemberLimit={overMemberLimit}
+          atMemberLimit={atMemberLimit}
+          atTeamLimit={atTeamLimit}
+          canInviteMembers={canInviteMembers}
+          canCreateAnotherTeam={canCreateAnotherTeam}
+          onInvite={goInvite}
+          onCreateTeam={goCreateTeam}
+          onUpgrade={goUpgrade}
+        />
+      )}
 
-      {/* Quick navigation */}
+      {/* Quick navigation – semua role nampak */}
       <div className="grid sm:grid-cols-2 gap-4">
         <Card
           title="Contacts"
@@ -122,19 +128,6 @@ export default function SalesTrackInitializer() {
 
       <div className="text-sm text-gray-500">
         Active team: <b>{activeTeam?.name || '—'}</b>
-      </div>
-
-      {/* Helpful links */}
-      <div className="mt-4 text-sm">
-        {canExport ? (
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            Export enabled
-          </span>
-        ) : (
-          <button onClick={goUpgrade} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-            Unlock Export
-          </button>
-        )}
       </div>
     </div>
   );

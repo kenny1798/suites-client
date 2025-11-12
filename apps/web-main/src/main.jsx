@@ -10,6 +10,8 @@ import Dashboard from './pages/Dashboard.jsx'
 import ProfilePage from './pages/ProfilePage.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
+import VerifyPending from './pages/VerifyPending.jsx'
+import VerifyEmail from './pages/VerifyEmail.jsx'
 import Billing from './pages/Billing.jsx'
 import Marketplace from './pages/Marketplace.jsx'
 import Store from './pages/Store.jsx'
@@ -51,6 +53,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/login" element={<Login/>} />
             <Route path="/register" element={<Register/>} />
             <Route path="/auth-success" element={<AuthSuccess/>} />
+            <Route path="/verify-pending" element={<VerifyPending/>} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
             {/* Protected group */}
             <Route

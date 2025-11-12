@@ -1,8 +1,16 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  ChevronLeftIcon, ChevronRightIcon, SectionLabel, NavItem,
-  SquareIcon, WrenchIcon, ChatIcon, Badge, DotIcon, LockIcon
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  SectionLabel,
+  NavItem,
+  SquareIcon,
+  WrenchIcon,
+  ChatIcon,
+  Badge,
+  DotIcon,
+  LockIcon,
 } from './ui.jsx';
 
 import { useAuth } from '@suite/auth';
@@ -18,20 +26,35 @@ const daysLeft = (iso) => {
   return diff > 0 ? diff : 0;
 };
 
-const getBadgeForSub = (sub, hasInheritedAccess) => {
-  if (hasInheritedAccess) return { text: 'Team', variant: 'variant-blue' };
-  if (!sub) return null;
+/**
+ * Badge untuk entitlements yang dah merge (direct + inherited)
+ * - ent = suiteEntitlements.entitlements[toolKey]
+ */
+const getBadgeForEntitlement = (ent) => {
+  if (!ent) return null;
 
-  const status = (sub.status || '').toLowerCase();
+  const status = (ent.status || '').toLowerCase();
+  const source = ent.source || null;
 
+  if (!status) return null;
+
+  // 1) Inherited only → "Team"
+  if (source === 'inherited' && (status === 'active' || status === 'trialing')) {
+    return { text: 'Team', variant: 'variant-blue' };
+  }
+
+  // 2) Direct / Mixed → Trial / Pro
   switch (status) {
-    case 'trialing':
+    case 'trialing': {
+      const d = ent.trialEnd ? daysLeft(ent.trialEnd) : null;
       return {
-        text: sub.trialEnd ? `Trial • ${daysLeft(sub.trialEnd)}d` : 'Trial',
-        variant: 'variant-blue'
+        text: ent.trialEnd && d !== null ? `Trial • ${d}d` : 'Trial',
+        variant: 'variant-blue',
       };
+    }
     case 'active':
       return { text: 'Pro', variant: 'variant-green' };
+
     case 'past_due':
     case 'unpaid':
       return { text: 'Past Due', variant: 'variant-amber' };
@@ -46,42 +69,102 @@ const getBadgeForSub = (sub, hasInheritedAccess) => {
   }
 };
 
+const EXPIRED_STATUSES = new Set([
+  'expired',
+  'canceled',
+  'past_due',
+  'unpaid',
+  'barred',
+]);
+
 export default function DesktopSidebar({
   collapsed,
   setCollapsed,
   activeTool,
   canAccessFeature,
 }) {
-  const { user } = useAuth();
+  const { suiteEntitlements } = useAuth();
   const { activeTeam } = useTeam();
   const { loading: loadingTools, data: allTools } = useTools();
-  const { loading: loadingSubs, map: subsMap } = useMySubs();
+  const { loading: loadingSubs } = useMySubs(); // guna untuk loading overall
 
   const isLoading = loadingTools || loadingSubs;
   const HeaderTitle = activeTool ? (activeTeam?.name || activeTool.name) : 'Suite';
 
-  // === Combine entitlements + subscriptions ===
+  // 👉 role user dalam team
+  const myRole = activeTeam?.TeamMembers?.[0]?.role;
+
+  // === Tools yang MASIH boleh guna (active/trialing) ===
   const visibleTools = React.useMemo(() => {
     if (!allTools) return [];
-    const ent = new Set(user?.entitlements?.tools || []);
-    const subSlugs = new Set(Object.keys(subsMap || {}));
-    const union = new Set([...ent, ...subSlugs]);
-    return allTools.filter(t => union.has(t.slug));
-  }, [allTools, user, subsMap]);
+    const suiteTools = new Set(suiteEntitlements?.tools || []);
+    if (suiteTools.size === 0) return [];
+    return allTools.filter((t) => suiteTools.has(t.slug));
+  }, [allTools, suiteEntitlements]);
+
+  // === Previously used tools (tak active/trialing lagi) ===
+  const previouslyUsedTools = React.useMemo(() => {
+    if (!allTools) return [];
+    const meta = suiteEntitlements?.meta || {};
+    const activeKeys = new Set(suiteEntitlements?.tools || []);
+
+    const result = [];
+
+    for (const [toolKey, history] of Object.entries(meta)) {
+      // toolKey di meta kemungkinan id; cuba match dengan id dulu, kalau tak jumpa baru cuba slug
+      const tool = allTools.find(
+        (t) =>
+          String(t.id) === String(toolKey) ||
+          t.slug === toolKey
+      );
+      if (!tool) continue;
+
+      // skip kalau masih aktif/trialing (dah ada di "Your tools")
+      if (activeKeys.has(tool.slug) || activeKeys.has(String(tool.id))) {
+        continue;
+      }
+
+      const direct = history.direct || [];
+      const inherited = history.inherited || [];
+      const allHist = [...direct, ...inherited];
+
+      if (allHist.length === 0) continue;
+
+      // check kalau pernah ada status expired / canceled / past_due / unpaid / barred
+      const hasExpiredLike = allHist.some((s) =>
+        EXPIRED_STATUSES.has((s.status || '').toLowerCase())
+      );
+      if (!hasExpiredLike) continue;
+
+      result.push(tool);
+    }
+
+    // optional: sort by name supaya stabil
+    result.sort((a, b) => a.name.localeCompare(b.name));
+
+    return result;
+  }, [allTools, suiteEntitlements]);
 
   return (
     <aside className="relative hidden lg:flex h-[calc(100dvh-3.5rem)] border-r bg-white">
       <div className="flex w-[var(--sb)] flex-col">
         {/* Header */}
-        <div className={`flex items-center border-b px-3 py-2 ${collapsed ? 'justify-end' : 'justify-between'}`}>
+        <div
+          className={`flex items-center border-b px-3 py-2 ${
+            collapsed ? 'justify-end' : 'justify-between'
+          }`}
+        >
           {!collapsed && (
-            <div className="text-sm font-semibold text-slate-800 truncate" title={HeaderTitle}>
+            <div
+              className="text-sm font-semibold text-slate-800 truncate"
+              title={HeaderTitle}
+            >
               {HeaderTitle}
             </div>
           )}
           <button
             className="rounded-md p-1.5 hover:bg-slate-100"
-            onClick={() => setCollapsed(c => !c)}
+            onClick={() => setCollapsed((c) => !c)}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
@@ -99,8 +182,15 @@ export default function DesktopSidebar({
                 </div>
               )}
               <div className="space-y-1">
-                {(activeTool.nav || []).map(item => {
-                  const locked = item.feature ? !canAccessFeature?.(item.feature) : false;
+                {(activeTool.nav || []).map((item) => {
+                  if (item.allowedRoles && !item.allowedRoles.includes(myRole)) {
+                    return null;
+                  }
+
+                  const locked = item.feature
+                    ? !canAccessFeature?.(item.feature)
+                    : false;
+
                   return locked ? (
                     <div
                       key={item.to}
@@ -108,7 +198,9 @@ export default function DesktopSidebar({
                       title="Requires upgrade"
                     >
                       <LockIcon />
-                      <span className={collapsed ? 'sr-only' : ''}>{item.label}</span>
+                      <span className={collapsed ? 'sr-only' : ''}>
+                        {item.label}
+                      </span>
                     </div>
                   ) : (
                     <NavLink
@@ -117,13 +209,17 @@ export default function DesktopSidebar({
                       end
                       className={({ isActive }) =>
                         `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${
-                          isActive ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
+                          isActive
+                            ? 'bg-slate-900 text-white'
+                            : 'text-slate-700 hover:bg-slate-100'
                         }`
                       }
                       title={collapsed ? item.label : undefined}
                     >
                       <DotIcon />
-                      <span className={collapsed ? 'sr-only' : ''}>{item.label}</span>
+                      <span className={collapsed ? 'sr-only' : ''}>
+                        {item.label}
+                      </span>
                     </NavLink>
                   );
                 })}
@@ -137,23 +233,35 @@ export default function DesktopSidebar({
                 <span className={collapsed ? 'sr-only' : ''}>Dashboard</span>
               </NavItem>
 
-              <SectionLabel collapsed={collapsed} className="mt-4">Your tools</SectionLabel>
+              {/* ---- Your tools (active / trialing) ---- */}
+              <SectionLabel collapsed={collapsed} className="mt-4">
+                Your tools
+              </SectionLabel>
 
               {isLoading ? (
                 <div className="p-3 text-sm text-slate-500">Loading...</div>
               ) : visibleTools.length > 0 ? (
-                visibleTools.map(tool => {
-                  const sub = subsMap[tool.slug];
-                  const hasInheritedAccess =
-                    (user?.entitlements?.tools || []).includes(tool.slug) && !sub;
-                  const badge = getBadgeForSub(sub, hasInheritedAccess);
+                visibleTools.map((tool) => {
+                  const ent =
+                    suiteEntitlements?.entitlements?.[tool.slug] ||
+                    suiteEntitlements?.entitlements?.[String(tool.id)] ||
+                    null;
+                  const badge = getBadgeForEntitlement(ent);
 
                   return (
-                    <NavItem key={tool.slug} to={tool.basePath} collapsed={collapsed}>
+                    <NavItem
+                      key={tool.slug}
+                      to={tool.basePath}
+                      collapsed={collapsed}
+                    >
                       <WrenchIcon />
-                      <span className={collapsed ? 'sr-only' : ''}>{tool.name}</span>
+                      <span className={collapsed ? 'sr-only' : ''}>
+                        {tool.name}
+                      </span>
                       {!collapsed && badge?.text && (
-                        <Badge className={`ml-auto ${badge.variant}`}>{badge.text}</Badge>
+                        <Badge className={`ml-auto ${badge.variant}`}>
+                          {badge.text}
+                        </Badge>
                       )}
                     </NavItem>
                   );
@@ -162,14 +270,46 @@ export default function DesktopSidebar({
                 <div className="mt-2 rounded-lg border px-3 py-3 text-sm text-slate-600">
                   <div className={collapsed ? 'sr-only' : ''}>
                     You don’t have any active tools.
-                    <NavLink to="/marketplace" className="ml-1 font-medium text-blue-600 hover:underline">
+                    <NavLink
+                      to="/marketplace"
+                      className="ml-1 font-medium text-blue-600 hover:underline"
+                    >
                       Browse →
                     </NavLink>
                   </div>
                 </div>
               )}
 
-              <SectionLabel collapsed={collapsed} className="mt-4">Support</SectionLabel>
+              {/* ---- Previously used tools (expired) ---- */}
+              {previouslyUsedTools.length > 0 && (
+                <>
+                  <SectionLabel collapsed={collapsed} className="mt-4">
+                    Previously used
+                  </SectionLabel>
+                  {previouslyUsedTools.map((tool) => (
+                    <NavItem
+                      key={`prev-${tool.slug}`}
+                      to={tool.basePath}
+                      collapsed={collapsed}
+                    >
+                      <WrenchIcon />
+                      <span className={collapsed ? 'sr-only' : ''}>
+                        {tool.name}
+                      </span>
+                      {!collapsed && (
+                        <Badge className="ml-auto variant-slate">
+                          Expired
+                        </Badge>
+                      )}
+                    </NavItem>
+                  ))}
+                </>
+              )}
+
+              {/* ---- Support ---- */}
+              <SectionLabel collapsed={collapsed} className="mt-4">
+                Support
+              </SectionLabel>
               <NavItem to="/support" collapsed={collapsed}>
                 <ChatIcon />
                 <span className={collapsed ? 'sr-only' : ''}>Live Support</span>

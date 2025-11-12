@@ -1,6 +1,7 @@
 # Node modules
 node_modules/
 .pnpm-store/
+certs/
 
 # Logs
 logs

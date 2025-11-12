@@ -3,7 +3,7 @@ import React, { lazy } from 'react';
 import SalestrackShell from './SalestrackShell';
 import SalestrackAccessGate from './SalestrackAccessGate';
 import { SalestrackFeatureGate } from './SalestrackFeatureGate';
-import { RoleProtectedRoute } from '@suite/auth';
+import { RoleProtectedRoute } from '@suite/core-context';
 
 const SalesTrackInitializer = lazy(() => import('./pages/SalesTrackInitializer.jsx'));
 const ContactsPage          = lazy(() => import('./pages/ContactsPage.jsx'));

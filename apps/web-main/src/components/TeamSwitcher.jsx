@@ -2,12 +2,38 @@
 
 import React, { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useTeam } from '@suite/core-context'; // Import hook kita
 import { CheckIcon, ChevronsUpDownIcon } from './ui.jsx'; // Anggap ikon ni wujud
 
 export default function TeamSwitcher() {
   // Guna hook untuk dapatkan state dari TeamProvider
   const { teams, activeTeam, switchTeam, isLoading } = useTeam();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Handler bila user tukar team
+  const handleSwitchTeam = (teamId) => {
+    // Kalau klik team yang sama, tak payah buat apa
+    if (!activeTeam || teamId === activeTeam.id) return;
+
+    // Pastikan kalau switchTeam async, kita tunggu selesai dulu
+    Promise
+      .resolve(switchTeam(teamId))
+      .finally(() => {
+        // Dapatkan tool slug dari URL sekarang
+        // contoh: /salestrack/manage → toolSlug = 'salestrack'
+        const parts = location.pathname.split('/').filter(Boolean);
+        const toolSlug = parts[0] || '';
+        const basePath = toolSlug ? `/${toolSlug}` : '/';
+
+        // Navigate balik ke root tool (contoh: /salestrack)
+        navigate(basePath, { replace: true });
+
+        // Hard reload untuk reset semua state
+        window.location.reload();
+      });
+  };
 
   // Paparan semasa loading atau jika tiada team
   if (isLoading) {
@@ -48,7 +74,7 @@ export default function TeamSwitcher() {
               <Menu.Item key={team.id}>
                 {({ active }) => (
                   <button
-                    onClick={() => switchTeam(team.id)}
+                    onClick={() => handleSwitchTeam(team.id)}
                     className={`${
                       active ? 'bg-slate-100 text-slate-900' : 'text-slate-700'
                     } group flex w-full items-center rounded-md px-3 py-2 text-sm`}
